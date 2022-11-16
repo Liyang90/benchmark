@@ -1,27 +1,43 @@
+# Copyright (c) 2020-2021, NVIDIA CORPORATION. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from functools import total_ordering
-from .cpu_record import CPURecord
+from .gpu_record import GPURecord
 
 
 @total_ordering
-class CPUPeakMemory(CPURecord):
+class GPUUsedMemory(GPURecord):
     """
-    The peak memory usage in the CPU.
+    The used memory in the GPU.
     """
 
-    tag = "cpu_peak_memory"
+    tag = "gpu_used_memory"
 
-    def __init__(self, value, timestamp=0):
+    def __init__(self, value, device_uuid=None, timestamp=0):
         """
         Parameters
         ----------
         value : float
-            The value of the CPU metrtic
+            The value of the GPU metrtic
+        device_uuid : str
+            The  GPU device uuid this metric is associated
+            with.
         timestamp : int
             The timestamp for the record in nanoseconds
         """
 
-        super().__init__(value, timestamp)
-        
+        super().__init__(value, device_uuid, timestamp)
 
     @staticmethod
     def header(aggregation_tag=False):
@@ -66,7 +82,8 @@ class CPUPeakMemory(CPURecord):
         to produce a brand new record.
         """
 
-        return CPUPeakMemory(value=(self.value() + other.value()))
+        return GPUUsedMemory(device_uuid=None,
+                             value=(self.value() + other.value()))
 
     def __sub__(self, other):
         """
@@ -74,4 +91,5 @@ class CPUPeakMemory(CPURecord):
         to produce a brand new record.
         """
 
-        return CPUPeakMemory(value=(other.value() - self.value()))
+        return GPUUsedMemory(device_uuid=None,
+                             value=(other.value() - self.value()))

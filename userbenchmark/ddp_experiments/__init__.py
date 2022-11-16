@@ -123,11 +123,6 @@ def parse_args(args: List[str]=None):
         default=1,
         help="number of times to repeat the experiments",
     )
-    parser.add_argument(
-        "--check_correctness_distributed",
-        action='store_true',
-        help="Do distributed correctness checks. Don't expect to use the same results for performance tests."
-    )
 
 
     try:
@@ -177,20 +172,6 @@ class FileBarrier:
 
 
 @dataclasses.dataclass
-class ExperimentParams:
-    config: Dict
-    args: Any  # arguments to the distributed trainer
-    model_args: Any  # arguments to the model
-    is_reference: bool  # should this experiment be treated as a reference for correctness?
-
-
-# used for labeling filenames for correctness checks
-def serialize_config(config: Dict):
-    keys = ["nodes", "model_name", "backend", "has_breaks"]
-    return "-".join([f"{k}_{config[k]}" for k in keys])
-
-
-@dataclasses.dataclass
 class JobConfig:
     outer_sync_path: str
 
@@ -200,7 +181,7 @@ class TrainerWrapper(object):
     # Each experiment should be a tuple of (config dict, args, model_args).
     # config: configuration data to attach to the result dict.
     # args & model_args: arguments for core_model.Trainer.
-    def __init__(self, job_config: JobConfig, per_experiment_args: List[ExperimentParams]):
+    def __init__(self, job_config: JobConfig, per_experiment_args: List[Tuple[Dict, Any, Any]]):
         self.job_config = job_config
         self.per_experiment_args = per_experiment_args
         self.timeout = timedelta(45)
@@ -229,39 +210,8 @@ class TrainerWrapper(object):
         job_env = submitit.JobEnvironment()
         barrier = self._get_barrier()
         print(f"This is node {job_env.node}")
-
-        # maps all configs that are expected to have the same output/gradients to the same value.
-        # i.e. we should expect that for a given model_name & number of nodes, we should get the same
-        #      outputs and gradients, regardless of the backend/has_breaks/etc.
-        def reference_key(config):
-            return f"{config['model_name']}-{config['nodes']}"
-        latest_reference_file = {}
-
-        output_dir = self.per_experiment_args[0].args.output_dir
-        base_ref_name = Path(output_dir) / uuid.uuid4().hex
-
-        for experiment_args in self.per_experiment_args:
-            config = experiment_args.config
-            args = experiment_args.args
-            model_args = experiment_args.model_args
-            is_reference = experiment_args.is_reference
+        for (config, args, model_args) in self.per_experiment_args:
             try:
-                key = reference_key(config)
-
-                if args.check_correctness_distributed:
-                    # if this is a reference, dump the gradients into a file for later use.
-                    # if this is not a reference, read the dumped gradients and compare.
-                    if is_reference:
-                        args.check_correctness_distributed = "reference"
-                        args.reference_data_path = f"{base_ref_name}-{serialize_config(config)}"
-                        latest_reference_file[key] = args.reference_data_path
-                    else:
-                        args.check_correctness_distributed = "test"
-                        args.reference_data_path = latest_reference_file[key] if key in latest_reference_file else None
-                else:
-                    args.check_correctness_distributed = None
-
-
                 if job_env.node >= args.nodes:
                     continue
                 result_dict = {**config}
@@ -338,10 +288,6 @@ class TrainerWrapper(object):
             timeout=self.timeout
         )
 
-    def _global_rank(self):
-        job_env = submitit.JobEnvironment()
-        return job_env.global_rank
-
     def _setup_gpu_args(self, args):
         job_env = submitit.JobEnvironment()
         args.output_dir = Path(str(args.output_dir).replace("%j", str(job_env.job_id)))
@@ -375,7 +321,7 @@ def main():
         gpus_per_node=args.ngpus,
         # one task per GPU
         tasks_per_node=args.ngpus,
-        cpus_per_task=12,
+        cpus_per_task=10,
         nodes=args.nodes,
         timeout_min=args.timeout,
         # Below are cluster dependent parameters
@@ -386,31 +332,45 @@ def main():
 
     executor.update_parameters(name="distbench", slurm_array_parallelism=1, timeout_min=1000)
 
+
+    # args.dist_url = get_init_file(args).as_uri()
+    # args.output_dir = args.job_dir
+    # job = executor.submit(TrainerWrapper(args))
+    #     # print ID of the Slurm job
+    # print(job.job_id)
+
+    # # waits for completion and returns output
+    # print(job.results())
+
     models = [
-        'torchbenchmark.models.hf_Bert.Model',
-        'torchbenchmark.models.hf_GPT2_large.Model',
-        'torchbenchmark.models.hf_T5_large.Model',
-        'torchbenchmark.models.timm_vision_transformer_large.Model',
-        'torchbenchmark.models.hf_T5.Model',
+        # 'torchbenchmark.models.hf_Bert.Model',
+        # # 'torchbenchmark.models.hf_BertLarge.Model',
+        # 'torchbenchmark.models.hf_GPT2_large.Model',
+        # 'torchbenchmark.models.hf_T5_large.Model',
+        # 'torchbenchmark.models.timm_vision_transformer_large.Model',
+        # # 'torchbenchmark.models.hf_GPT2.Model',
+        # 'torchbenchmark.models.hf_T5.Model',
         'torchbenchmark.models.resnet50.Model',
     ]
 
     model_batch_size = {
         'torchbenchmark.models.hf_Bert.Model': 32,
+        'torchbenchmark.models.hf_BertLarge.Model': 16,
         'torchbenchmark.models.hf_GPT2_large.Model': 4,
         'torchbenchmark.models.hf_T5_large.Model': 4,
         'torchbenchmark.models.timm_vision_transformer_large.Model': 16,
+        'torchbenchmark.models.hf_GPT2.Model': 24,
         'torchbenchmark.models.hf_T5.Model': 12,
-        'torchbenchmark.models.resnet50.Model': 128,
+        'torchbenchmark.models.resnet50.Model': 32,
     }
-    # put eager first to ensure it can be used for reference values.
-    # try --torchdynamo eager or --torchdynamo aot_eager for debugging
     model_args_configs = [
         [],  # no args = pure eager baseline
-        ["--torchdynamo", "inductor"],
+        # ["--torchdynamo", "eager"],  # runs dynamo without a backend
+        # ["--torchdynamo", "aot_nvfuser"],
+        # ["--torchdynamo", "inductor"],
     ]
-    # run the 8-node version first so that all the caches get warmed up at the same time.
-    node_list = [8, 4, 2, 1]
+    # node_list = [1, 2, 4, 8, 12, 16, 20, 24]
+    node_list = [1]
 
     def get_backend_name(model_args):
         if "--torchdynamo" in model_args:
@@ -426,7 +386,6 @@ def main():
                         backend_name = get_backend_name(model_args)
                         if backend_name == "eager" and has_breaks:
                             continue
-                        is_reference = (backend_name == "eager")
                         # copy the model args so we can add more arguments without modifying
                         # the original model_args list.
                         copied_model_args = copy.copy(model_args)
@@ -435,13 +394,6 @@ def main():
                             copied_model_args.append("--optimize_dynamo_ddp")
                         if "inductor" in backend_name:
                             copied_model_args.extend(["--torchinductor_cudagraph", "False"])
-
-                        # skip non-distributed correctness checks to avoid extra iterations which can
-                        # interfere with distributed correctness checks.
-                        copied_model_args.append("--skip_correctness")
-                        if args.check_correctness_distributed and "inductor" in backend_name:
-                            copied_model_args.extend(["--torchinductor_fallback_random", "True"])
-
                         batch_size = model_batch_size[model_name]
                         args_copy = copy.deepcopy(args)
                         args_copy.model = model_name
@@ -455,14 +407,14 @@ def main():
                             "backend": backend_name,
                             "has_breaks": has_breaks,
                         }
-                        experiments.append(ExperimentParams(config, args_copy, copied_model_args, is_reference))
+                        experiments.append((config, args_copy, copied_model_args))
 
     allocation_nodes = max(node_list)
     executor.update_parameters(
         gpus_per_node=args.ngpus,
         # one task per GPU
         tasks_per_node=args.ngpus,
-        cpus_per_task=12,
+        cpus_per_task=10,
         nodes=allocation_nodes,
         timeout_min=args.timeout,
         # Below are cluster dependent parameters

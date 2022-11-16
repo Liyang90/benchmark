@@ -13,7 +13,6 @@
 # limitations under the License.
 import logging
 from numba.cuda.cudadrv import enums
-# @Yueming Hao: TODO: Replace this with nvml API
 from numba import cuda
 from .da_exceptions import TorchBenchAnalyzerException
 
