@@ -17,7 +17,7 @@ from torchbenchmark import load_model_by_name
 import torch
 
 WARMUP_ROUNDS = 3
-SUPPORT_DEVICE_LIST = ["cpu", "cuda"]
+SUPPORT_DEVICE_LIST = ["cpu", "cuda", "xla"]
 if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
     SUPPORT_DEVICE_LIST.append("mps")
 SUPPORT_PROFILE_LIST = ["record_shapes", "profile_memory", "with_stack", "with_flops", "with_modules"]
@@ -295,6 +295,10 @@ if __name__ == "__main__":
     args, extra_args = parser.parse_known_args()
     if args.cudastreams and not args.device == "cuda":
         print("cuda device required to use --cudastreams option!")
+        exit(-1)
+
+    if args.device == "xla" and (args.profile or args.amp):
+        print("xla device is not compatible with --profile or --amp options.")
         exit(-1)
 
     found = False
