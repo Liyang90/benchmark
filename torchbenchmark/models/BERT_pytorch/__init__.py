@@ -87,6 +87,10 @@ class Model(BenchmarkModel):
             '--output_path', 'bert.model',
         ]) # Avoid reading sys.argv here
         args.with_cuda = self.device == 'cuda'
+        args.with_xla = self.device == 'xla'
+        if self.device == 'xla':
+            import torch_xla.core.xla_model as xm
+            self.device = xm.xla_device()
         args.script = self.jit
         args.on_memory = True
 
@@ -147,7 +151,7 @@ class Model(BenchmarkModel):
 
         trainer = BERTTrainer(bert, len(vocab), train_dataloader=train_data_loader, test_dataloader=test_data_loader,
                                    lr=args.lr, betas=(args.adam_beta1, args.adam_beta2), weight_decay=args.adam_weight_decay,
-                                   with_cuda=args.with_cuda, cuda_devices=args.cuda_devices, log_freq=args.log_freq, debug=args.debug)
+                                   with_cuda=args.with_cuda, with_xla=args.with_xla, cuda_devices=args.cuda_devices, log_freq=args.log_freq, debug=args.debug)
 
         example_batch = next(iter(train_data_loader))
         self.example_inputs = example_batch['bert_input'].to(self.device)[:self.batch_size], example_batch['segment_label'].to(self.device)[:self.batch_size]

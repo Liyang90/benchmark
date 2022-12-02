@@ -21,7 +21,7 @@ class BERTTrainer:
     def __init__(self, bert: BERT, vocab_size: int,
                  train_dataloader: DataLoader, test_dataloader: DataLoader = None,
                  lr: float = 1e-4, betas=(0.9, 0.999), weight_decay: float = 0.01, warmup_steps=10000,
-                 with_cuda: bool = True, cuda_devices=None, log_freq: int = 10, debug: str = None):
+                 with_cuda: bool = True, with_xla: bool = False, cuda_devices=None, log_freq: int = 10, debug: str = None):
         """
         :param bert: BERT model which you want to train
         :param vocab_size: total word vocab size
@@ -36,7 +36,13 @@ class BERTTrainer:
 
         # Setup cuda device for BERT training, argument -c, --cuda should be true
         cuda_condition = torch.cuda.is_available() and with_cuda
-        self.device = torch.device("cuda:0" if cuda_condition else "cpu")
+        if cuda_condition:
+            self.device = torch.device("cuda:0")
+        elif with_xla:
+            import torch_xla.core.xla_model as xm
+            self.device = xm.xla_device()
+        else:
+            self.device = torch.device("cpu")
 
         # This BERT model will be saved every epoch
         self.bert = bert
