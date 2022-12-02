@@ -88,9 +88,6 @@ class Model(BenchmarkModel):
         ]) # Avoid reading sys.argv here
         args.with_cuda = self.device == 'cuda'
         args.with_xla = self.device == 'xla'
-        if self.device == 'xla':
-            import torch_xla.core.xla_model as xm
-            self.device = xm.xla_device()
         args.script = self.jit
         args.on_memory = True
 
@@ -153,10 +150,13 @@ class Model(BenchmarkModel):
                                    lr=args.lr, betas=(args.adam_beta1, args.adam_beta2), weight_decay=args.adam_weight_decay,
                                    with_cuda=args.with_cuda, with_xla=args.with_xla, cuda_devices=args.cuda_devices, log_freq=args.log_freq, debug=args.debug)
 
+        if device == 'xla':
+            import torch_xla.core.xla_model as xm
+            device = xm.xla_device()
         example_batch = next(iter(train_data_loader))
-        self.example_inputs = example_batch['bert_input'].to(self.device)[:self.batch_size], example_batch['segment_label'].to(self.device)[:self.batch_size]
-        self.is_next = example_batch['is_next'].to(self.device)[:self.batch_size]
-        self.bert_label = example_batch['bert_label'].to(self.device)[:self.batch_size]
+        self.example_inputs = example_batch['bert_input'].to(device)[:self.batch_size], example_batch['segment_label'].to(device)[:self.batch_size]
+        self.is_next = example_batch['is_next'].to(device)[:self.batch_size]
+        self.bert_label = example_batch['bert_label'].to(device)[:self.batch_size]
         self.model = trainer
 
     def get_module(self):
