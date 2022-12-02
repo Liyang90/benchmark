@@ -64,6 +64,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
 
     test: str
     device: str
+    device_obj: torch.device
     jit: bool
     batch_size: int
     extra_args: List[str]
@@ -79,6 +80,11 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         assert self.test == "train" or self.test == "eval", \
             f"Test must be 'train' or 'eval', but get {self.test}. Please submit a bug report."
         self.device = device
+        if self.device == "xla":
+            import torch_xla.core.xla_model as xm
+            self.device_obj = xm.xla_device()
+        else:
+            self.device_obj = torch.device(self.device)
         self.jit = jit
         self.determine_batch_size(batch_size)
         self.extra_args = extra_args
@@ -272,6 +278,10 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                 self.train()
             elif self.test == "eval":
                 out = self.eval()
+
+        if self.device == "xla":
+            import torch_xla.core.xla_model as xm
+            xm.mark_step()
         return out
 
     def eval_in_nograd(self):

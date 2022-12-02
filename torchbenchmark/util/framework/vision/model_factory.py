@@ -21,10 +21,10 @@ class TorchVisionModel(BenchmarkModel):
         torch.backends.cudnn.benchmark = False
 
         if weights is None:
-            self.model = getattr(models, model_name)(pretrained=True).to(self.device)
+            self.model = getattr(models, model_name)(pretrained=True).to(self.device_obj)
         else:
-            self.model = getattr(models, model_name)(weights=weights).to(self.device)
-        self.example_inputs = (torch.randn((self.batch_size, 3, 224, 224)).to(self.device),)
+            self.model = getattr(models, model_name)(weights=weights).to(self.device_obj)
+        self.example_inputs = (torch.randn((self.batch_size, 3, 224, 224)).to(self.device_obj),)
         if test == "train":
             self.example_outputs = torch.rand_like(self.model(*self.example_inputs))
             self.model.train()
@@ -48,7 +48,7 @@ class TorchVisionModel(BenchmarkModel):
             while True:
                 result = []
                 for _i in range(num_batches):
-                    result.append((torch.randn((self.batch_size, 3, 224, 224)).to(self.device),))
+                    result.append((torch.randn((self.batch_size, 3, 224, 224)).to(self.device_obj),))
                 if self.dargs.precision == "fp16":
                     result = list(map(lambda x: (x[0].half(), ), result))
                 yield result
