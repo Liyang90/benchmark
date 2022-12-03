@@ -50,15 +50,15 @@ class Model(BenchmarkModel):
             d_inner=self.opt.d_inner_hid,
             n_layers=self.opt.n_layers,
             n_head=self.opt.n_head,
-            dropout=self.opt.dropout).to(self.device)
+            dropout=self.opt.dropout).to(self.device_obj)
         
         return transformer
 
     def _preprocess(self, data_iter):
         preloaded_data = []
         for d in data_iter:
-            src_seq = patch_src(d.src, self.opt.src_pad_idx).to(self.device)
-            trg_seq, gold = map(lambda x: x.to(self.device), patch_trg(d.trg, self.opt.trg_pad_idx))
+            src_seq = patch_src(d.src, self.opt.src_pad_idx).to(self.device_obj)
+            trg_seq, gold = map(lambda x: x.to(self.device_obj), patch_trg(d.trg, self.opt.trg_pad_idx))
             preloaded_data.append((src_seq, trg_seq, gold))
         return preloaded_data
 
@@ -92,7 +92,7 @@ class Model(BenchmarkModel):
             'val_path': None,
         })
 
-        train_data, test_data = prepare_dataloaders(self.opt, self.device)
+        train_data, test_data = prepare_dataloaders(self.opt, self.device_obj)
         self.model = self._create_transformer()
 
         if test == "train":
