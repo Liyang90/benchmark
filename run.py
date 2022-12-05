@@ -153,6 +153,15 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, num_iter=10, model=None, export_me
             wall_latency = t1 - t0
             # TODO: modify this to add GPU time as well
             result_summary.append([(t1 - t0) / 1_000_000])
+        elif args.device == "xla":
+            import torch_xla.core.xla_model as xm
+
+            xm.wait_device_ops()
+            t0 = time.time_ns()
+            func()
+            xm.wait_device_ops()
+            t1 = time.time_ns()
+            result_summary.append([(t1 - t0) / 1_000_000])
         else:
             t0 = time.time_ns()
             func()

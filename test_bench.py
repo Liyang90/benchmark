@@ -23,7 +23,7 @@ from torchbenchmark.util.metadata_utils import skip_by_metadata
 def pytest_generate_tests(metafunc):
     # This is where the list of models to test can be configured
     # e.g. by using info in metafunc.config
-    devices = ['cpu', 'cuda']
+    devices = ['cpu', 'cuda', 'xla']
 
     if hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
         devices.append('mps')
@@ -33,6 +33,9 @@ def pytest_generate_tests(metafunc):
 
     if metafunc.config.option.cuda_only:
         devices = ['cuda']
+
+    if metafunc.config.option.xla_only:
+        devices = ['xla']
 
     if metafunc.cls and metafunc.cls.__name__ == "TestBenchNetwork":
         paths = _list_model_paths()

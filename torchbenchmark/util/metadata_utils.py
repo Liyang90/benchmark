@@ -11,6 +11,10 @@ def match_item(item_name: str, item_val: str, skip_item: Dict[str, Any]) -> bool
 
 def skip_by_metadata(test: str, device:str, jit: bool, extra_args: List[str], metadata: Dict[str, Any]) -> bool:
     "Check if the test should be skipped based on model metadata."
+    if device == "xla" and jit:
+        # Always skip. 'xla' and 'jit' is not compatible options
+        # Instead of adding it to all models' metadata, we add it here
+        return True
     if not "not_implemented" in metadata:
         return False
     for skip_item in metadata["not_implemented"]:

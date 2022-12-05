@@ -309,6 +309,9 @@ class ModelTask(base_task.TaskBase):
         if device == 'cuda':
             torch.cuda.empty_cache()
             maybe_sync = torch.cuda.synchronize
+        elif device == 'xla':
+            import torch_xla.core.xla_model as xm
+            maybe_sync = xm.wait_device_ops
         else:
             maybe_sync = lambda: None
 

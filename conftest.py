@@ -18,6 +18,8 @@ def pytest_addoption(parser):
                     help="Run benchmarks on cpu only and ignore machine configuration checks")
     parser.addoption("--cuda_only", action='store_true',
                     help="Run benchmarks on cuda only and ignore machine configuration checks")
+    parser.addoption("--xla_only", action='store_true',
+                    help="Run benchmarks on xla only and ignore machine configuration checks")
 
 def set_fuser(fuser):
     if fuser == "te":
