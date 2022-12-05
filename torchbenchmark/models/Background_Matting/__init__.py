@@ -65,11 +65,11 @@ class Model(BenchmarkModel):
         for data in train_loader:
             self.train_data.append(data)
             for key in data:
-                data[key].to(self.device)
+                data[key].to(self.device_obj)
 
         netB = ResnetConditionHR(input_nc=(
             3, 3, 1, 4), output_nc=4, n_blocks1=self.opt.n_blocks1, n_blocks2=self.opt.n_blocks2)
-        netB.to(self.device)
+        netB.to(self.device_obj)
         netB.eval()
         for param in netB.parameters():  # freeze netB
             param.requires_grad = False
@@ -80,14 +80,14 @@ class Model(BenchmarkModel):
         netG.apply(conv_init)
         self.netG = netG
 
-        self.netG.to(self.device)
+        self.netG.to(self.device_obj)
 
         netD = MultiscaleDiscriminator(
             input_nc=3, num_D=1, norm_layer=nn.InstanceNorm2d, ndf=64)
         netD.apply(conv_init)
         # netD = nn.DataParallel(netD)
         self.netD = netD
-        self.netD.to(self.device)
+        self.netD.to(self.device_obj)
 
         self.l1_loss = alpha_loss()
         self.c_loss = compose_loss()
@@ -105,8 +105,8 @@ class Model(BenchmarkModel):
     def _maybe_trace(self):
         for data in self.train_data:
             bg, image, seg, multi_fr = data['bg'], data['image'], data['seg'], data['multi_fr']
-            bg, image, seg, multi_fr = Variable(bg.to(self.device)), Variable(
-                image.to(self.device)), Variable(seg.to(self.device)), Variable(multi_fr.to(self.device))
+            bg, image, seg, multi_fr = Variable(bg.to(self.device_obj)), Variable(
+                image.to(self.device_obj)), Variable(seg.to(self.device_obj)), Variable(multi_fr.to(self.device_obj))
             if self.jit:
                 self.netB = torch.jit.trace(
                     self.netB, (image, bg, seg, multi_fr))
@@ -122,7 +122,7 @@ class Model(BenchmarkModel):
         for _i, data in enumerate(self.train_data):
             bg, image, seg, multi_fr, seg_gt, back_rnd = data['bg'], data[
                 'image'], data['seg'], data['multi_fr'], data['seg-gt'], data['back-rnd']
-            return self.netG, (image.to(self.device), bg.to(self.device), seg.to(self.device), multi_fr.to(self.device))
+            return self.netG, (image.to(self.device_obj), bg.to(self.device_obj), seg.to(self.device_obj), multi_fr.to(self.device_obj))
 
     def train(self):
         self.netG.train()
@@ -141,9 +141,9 @@ class Model(BenchmarkModel):
             bg, image, seg, multi_fr, seg_gt, back_rnd = data['bg'], data[
                 'image'], data['seg'], data['multi_fr'], data['seg-gt'], data['back-rnd']
 
-            bg, image, seg, multi_fr, seg_gt, back_rnd = Variable(bg.to(self.device)), Variable(image.to(self.device)), Variable(
-                seg.to(self.device)), Variable(multi_fr.to(self.device)), Variable(seg_gt.to(self.device)), Variable(back_rnd.to(self.device))
-            mask0 = Variable(torch.ones(seg.shape).to(self.device))
+            bg, image, seg, multi_fr, seg_gt, back_rnd = Variable(bg.to(self.device_obj)), Variable(image.to(self.device_obj)), Variable(
+                seg.to(self.device_obj)), Variable(multi_fr.to(self.device_obj)), Variable(seg_gt.to(self.device_obj)), Variable(back_rnd.to(self.device_obj))
+            mask0 = Variable(torch.ones(seg.shape).to(self.device_obj))
 
             tr0 = time.time()
 
@@ -153,8 +153,8 @@ class Model(BenchmarkModel):
                 mask = (alpha_pred_sup > -0.98).type(torch.cuda.FloatTensor)
                 mask1 = (seg_gt > 0.95).type(torch.cuda.FloatTensor)
             else:
-                mask = (alpha_pred_sup > -0.98).type(torch.FloatTensor)
-                mask1 = (seg_gt > 0.95).type(torch.FloatTensor)
+                mask = (alpha_pred_sup > -0.98).type(torch.FloatTensor).to(self.device_obj)
+                mask1 = (seg_gt > 0.95).type(torch.FloatTensor).to(self.device_obj)
 
             # Train Generator
 
@@ -175,7 +175,7 @@ class Model(BenchmarkModel):
             if self.device == 'cuda':
                 al_mask = (alpha_pred > 0.95).type(torch.cuda.FloatTensor)
             else:
-                al_mask = (alpha_pred > 0.95).type(torch.FloatTensor)
+                al_mask = (alpha_pred > 0.95).type(torch.FloatTensor).to(self.device_obj)
 
             # Choose the target background for composition
             # back_rnd: contains separate set of background videos captured
@@ -270,14 +270,20 @@ class Model(BenchmarkModel):
 
             del mask, back_rnd, mask0, seg_gt, mask1, bg, alpha_pred, alpha_pred_sup, image, fg_pred_sup, fg_pred, seg, multi_fr, image_sh, bg_sh, fake_response, real_response, al_loss, fg_loss, comp_loss, lossG, lossD, loss_ganD_real, loss_ganD_fake, loss_ganG
 
+        if self.device == 'xla':
+            import torch_xla.core.xla_model as xm
+            xm.mark_step()
+            saving_func = xm.save
+        else:
+            saving_func = torch.save
         if (epoch % 2 == 0):
-            torch.save(self.netG.state_dict(),
+            saving_func(self.netG.state_dict(),
                        os.path.join(self.model_dir, 'netG_epoch_%d.pth' % (epoch)))
-            torch.save(self.optimizerG.state_dict(),
+            saving_func(self.optimizerG.state_dict(),
                        os.path.join(self.model_dir, 'optimG_epoch_%d.pth' % (epoch)))
-            torch.save(self.netD.state_dict(),
+            saving_func(self.netD.state_dict(),
                        os.path.join(self.model_dir, 'netD_epoch_%d.pth' % (epoch)))
-            torch.save(self.optimizerD.state_dict(),
+            saving_func(self.optimizerD.state_dict(),
                        os.path.join(self.model_dir, 'optimD_epoch_%d.pth' % (epoch)))
 
             # Change weight every 2 epoch to put more stress on discriminator weight and less on pseudo-supervision
