@@ -158,7 +158,7 @@ class Model(BenchmarkModel):
         num_epochs = dcgan.num_epochs
 
         # Create the generator
-        self.netG = Generator(dcgan).to(device)
+        self.netG = Generator(dcgan).to(self.device_obj)
 
         # Handle multi-gpu if desired
         if (dcgan.device == 'cuda') and (ngpu > 1):
@@ -173,7 +173,7 @@ class Model(BenchmarkModel):
             print(self.netG)
 
         # Create the Discriminator
-        netD = Discriminator(dcgan).to(device)
+        netD = Discriminator(dcgan).to(self.device_obj)
 
         # Handle multi-gpu if desired
         if (dcgan.device == 'cuda') and (ngpu > 1):
@@ -192,14 +192,14 @@ class Model(BenchmarkModel):
 
         # Create batch of latent vectors that we will use to visualize
         #  the progression of the generator
-        self.fixed_noise = torch.randn(64, nz, 1, 1, device=device)
+        self.fixed_noise = torch.randn(64, nz, 1, 1, device=self.device_obj)
 
         # Establish convention for real and fake labels during training
         self.real_label = 1.
         self.fake_label = 0.
 
         # Random values as surrogate for batch of photos
-        self.exmaple_inputs = torch.randn(self.batch_size, 3, 64, 64, device=self.device)
+        self.exmaple_inputs = torch.randn(self.batch_size, 3, 64, 64, device=self.device_obj)
         self.model = netD
         if test == "train":
             # Setup Adam optimizers for both G and D
@@ -209,7 +209,7 @@ class Model(BenchmarkModel):
             # inference would just run descriminator so thats what we'll do too.
             self.inference_just_descriminator = True
             if False == self.inference_just_descriminator:
-                self.eval_noise = torch.randn(self.batch_size, nz, 1, 1, device=self.device)
+                self.eval_noise = torch.randn(self.batch_size, nz, 1, 1, device=self.device_obj)
 
     def jit_callback(self):
         assert self.jit, "Calling JIT callback without specifying the JIT option."
@@ -274,7 +274,7 @@ class Model(BenchmarkModel):
                 real_cpu = benchmark_pic
                 b_size = real_cpu.size(0)
 
-                label = torch.full((b_size,), real_label, dtype=torch.float, device=device)
+                label = torch.full((b_size,), real_label, dtype=torch.float, device=self.device_obj)
                 # Forward pass real batch through D
                 output = netD(real_cpu).view(-1)
                 # Calculate loss on all-real batch
@@ -285,7 +285,7 @@ class Model(BenchmarkModel):
 
                 ## Train with all-fake batch
                 # Generate batch of latent vectors
-                noise = torch.randn(b_size, nz, 1, 1, device=device)
+                noise = torch.randn(b_size, nz, 1, 1, device=self.device_obj)
                 # Generate fake image batch with G
                 fake = netG(noise)
                 label.fill_(fake_label)

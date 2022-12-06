@@ -11,5 +11,9 @@ not_implemented:
   test: train
 - device: cuda
   test: eval
+- device: xla
+  test: train
+- device: xla
+  test: eval
 train_benchmark: true
 train_deterministic: false

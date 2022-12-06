@@ -91,9 +91,9 @@ class Detectron2Model(BenchmarkModel):
 
         cfg = setup(args)
         if args.config_file.endswith(".yaml"):
-            self.model = build_model(cfg).to(self.device)
+            self.model = build_model(cfg).to(self.device_obj)
         else:
-            self.model = instantiate(cfg.model).to(self.device)
+            self.model = instantiate(cfg.model).to(self.device_obj)
 
         # setup model and return the dataloader
         if self.test == "train":
@@ -101,7 +101,7 @@ class Detectron2Model(BenchmarkModel):
         elif self.test == "eval":
             loader = self.setup_eval(cfg, args)
 
-        self.example_inputs = prefetch(itertools.islice(loader, 100), self.device)
+        self.example_inputs = prefetch(itertools.islice(loader, 100), self.device_obj)
         # torchbench: only run 1 batch
         self.NUM_BATCHES = 1
 
@@ -146,7 +146,7 @@ class Detectron2Model(BenchmarkModel):
     def enable_fp16_half(self):
         assert self.dargs.precision == "fp16", f"Expected precision fp16, get {self.dargs.precision}"
         self.model = self.model.half()
-        self.example_inputs = prefetch(self.example_inputs, self.device, self.dargs.precision)
+        self.example_inputs = prefetch(self.example_inputs, self.device_obj, self.dargs.precision)
 
     def train(self):
         with EventStorage():
