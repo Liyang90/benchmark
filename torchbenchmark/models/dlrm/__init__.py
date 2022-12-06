@@ -162,12 +162,12 @@ class Model(BenchmarkModel):
 
         # Preparing data
         X, lS_o, lS_i, self.targets = next(iter(self.train_ld))
-        X = X.to(self.device)
-        lS_i = [S_i.to(self.device) for S_i in lS_i] if isinstance(lS_i, list) \
-            else lS_i.to(self.device)
-        lS_o = [S_o.to(self.device) for S_o in lS_o] if isinstance(lS_o, list) \
-            else lS_o.to(self.device)
-        self.targets = self.targets.to(self.device)
+        X = X.to(self.device_obj)
+        lS_i = [S_i.to(self.device_obj) for S_i in lS_i] if isinstance(lS_i, list) \
+            else lS_i.to(self.device_obj)
+        lS_o = [S_o.to(self.device_obj) for S_o in lS_o] if isinstance(lS_o, list) \
+            else lS_o.to(self.device_obj)
+        self.targets = self.targets.to(self.device_obj)
 
         # Setting Loss Function
         if self.opt.loss_function == "mse":
@@ -180,7 +180,7 @@ class Model(BenchmarkModel):
         else:
             sys.exit("ERROR: --loss-function=" + self.opt.loss_function + " is not supported")
 
-        self.model = dlrm.to(self.device)
+        self.model = dlrm.to(self.device_obj)
         self.example_inputs = (X, lS_o, lS_i)
         if test == "train":
             self.model.train()

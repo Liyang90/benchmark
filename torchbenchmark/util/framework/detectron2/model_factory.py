@@ -27,7 +27,7 @@ from detectron2.data import build_detection_test_loader, build_detection_train_l
 
 from typing import Tuple
 
-def setup(args):
+def setup(args, device):
     if args.config_file.endswith(".yaml"):
         cfg = get_cfg()
         cfg.merge_from_file(args.config_file)
@@ -35,6 +35,7 @@ def setup(args):
         # set images per batch to 1
         cfg.SOLVER.IMS_PER_BATCH = 1
         cfg.MODEL.WEIGHTS = args.model_file
+        cfg.MODEL.DEVICE = device
         if args.resize == "448x608":
             cfg.MODEL.RPN.POST_NMS_TOPK_TEST = 300
             cfg.INPUT.MIN_SIZE_TEST = 448
@@ -89,7 +90,7 @@ class Detectron2Model(BenchmarkModel):
         if hasattr(self, "FCOS_USE_BN") and self.FCOS_USE_BN:
             args.fcos_use_bn = True
 
-        cfg = setup(args)
+        cfg = setup(args, str(self.device_obj))
         if args.config_file.endswith(".yaml"):
             self.model = build_model(cfg).to(self.device_obj)
         else:

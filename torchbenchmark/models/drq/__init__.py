@@ -103,16 +103,16 @@ class Model(BenchmarkModel):
             float(self.env.action_space.low.min()),
             float(self.env.action_space.high.max())
         ]
-        self.agent = DRQAgent(self.cfg, self.device, obs_shape, action_shape, action_range)
+        self.agent = DRQAgent(self.cfg, self.device_obj, obs_shape, action_shape, action_range)
         self.replay_buffer = ReplayBuffer(self.env.observation_space.shape,
                                           self.env.action_space.shape,
                                           self.cfg.replay_buffer_capacity,
-                                          self.cfg.image_pad, self.device)
+                                          self.cfg.image_pad, self.device_obj)
         self.step = 0
 
     def get_module(self):
         obs = self.env.reset()
-        obs = torch.FloatTensor(obs).to(self.device)
+        obs = torch.FloatTensor(obs).to(self.device_obj)
         obs = obs.unsqueeze(0)
         return self.agent.actor, (obs, )
 

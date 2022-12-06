@@ -56,20 +56,22 @@ class Model(BenchmarkModel):
             # use a mini dataset
             data_cfg.train.dataset.names = "coco_2017_val_100"
             data_cfg.train.total_batch_size = self.batch_size
-            self.model = instantiate(model_cfg).to(self.device)
+            self.model = instantiate(model_cfg).to(self.device_obj)
             train_loader = instantiate(data_cfg.train)
-            self.example_inputs = prefetch(itertools.islice(train_loader, 100), self.device)
+            self.example_inputs = prefetch(itertools.islice(train_loader, 100), self.device_obj)
             self.optimizer = torch.optim.SGD(self.model.parameters(), 0.)
         elif test == "eval":
             data_cfg.test.dataset.names = "coco_2017_val_100"
             data_cfg.test.batch_size = self.batch_size
-            self.model = instantiate(model_cfg).to(self.device)
+            self.model = instantiate(model_cfg).to(self.device_obj)
             # load model from checkpoint
             DetectionCheckpointer(self.model).load(self.model_file)
             self.model.eval()
             test_loader = instantiate(data_cfg.test)
-            self.example_inputs = prefetch(itertools.islice(test_loader, 100), self.device)
+            self.example_inputs = prefetch(itertools.islice(test_loader, 100), self.device_obj)
         self.NUM_BATCHES = len(self.example_inputs)
+        if self.device == "xla":
+            self.NUM_BATCHES = 1
 
     def get_module(self):
         return self.model, (self.example_inputs[0], )
