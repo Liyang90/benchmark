@@ -1,5 +1,6 @@
 import os
 import sys
+import patch
 import torch
 import subprocess
 from torchbenchmark import REPO_PATH
@@ -9,6 +10,16 @@ def update_fambench_submodule():
     update_command = ["git", "submodule", "update", 
                       "--init", "--recursive", os.path.join("submodules","FAMBench")]
     subprocess.check_call(update_command, cwd=REPO_PATH)
+
+def patch_fambench():
+    print("Applying patch to FAMBench...")
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    patch_file = os.path.join(current_dir, "fambench.patch")
+    target_dir = os.path.join(current_dir, "../../../submodules/FAMBench")
+    p = patch.fromfile(patch_file)
+    if not p.apply(strip=0, root=target_dir):
+        print("Failed to patch FAMBench. Exit.")
+        exit(1)
 
 def pip_install_requirements():
     try:
@@ -23,4 +34,5 @@ def pip_install_requirements():
 
 if __name__ == "__main__":
     update_fambench_submodule()
+    patch_fambench()
     pip_install_requirements()

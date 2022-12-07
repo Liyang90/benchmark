@@ -66,9 +66,9 @@ class Model(BenchmarkModel):
             args.vocab_size, args.inference_only, uniform_seqlen=args.sequence_length,
             seqlen_dist=args.seqlen_dist, seq_len_dist_max=args.seqlen_dist_max)
         # Prefetch the model and data to device
-        self.xlmr = self.xlmr.to(self.device)
-        self.x_l = list(map(lambda x: x.to(self.device), self.x_l))
-        self.y_true_l = list(map(lambda x: x.to(self.device), self.y_true_l))
+        self.xlmr = self.xlmr.to(self.device_obj)
+        self.x_l = list(map(lambda x: x.to(self.device_obj), self.x_l))
+        self.y_true_l = list(map(lambda x: x.to(self.device_obj), self.y_true_l))
 
     def get_module(self):
         return self.xlmr, self.x_l

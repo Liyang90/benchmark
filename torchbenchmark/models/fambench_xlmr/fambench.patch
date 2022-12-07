@@ -1,0 +1,37 @@
+diff --git a/benchmarks/xlmr/ootb/xlmr.py b/benchmarks/xlmr/ootb/xlmr.py
+index b0cb790..aed491d 100644
+--- a/benchmarks/xlmr/ootb/xlmr.py
++++ b/benchmarks/xlmr/ootb/xlmr.py
+@@ -109,9 +109,17 @@ def generate_dataset(num_batches, batch_size, vocab_size, inference_only, seqlen
+     Y_data = []
+     for _ in range(num_batches):
+         x_sample, y_sample = generate_single_sample()
+-        X_data.append(x_sample.pin_memory())
++        try:
++            x_sample = x_sample.pin_memory()
++        except:
++            pass
++        X_data.append(x_sample)
+         if(not inference_only):
+-            Y_data.append(y_sample.pin_memory())
++            try:
++                y_sample = y_sample.pin_memory()
++            except:
++                pass
++            Y_data.append(y_sample)
+ 
+     return X_data, Y_data
+ 
+diff --git a/benchmarks/xlmr/ootb/xlmr_data.py b/benchmarks/xlmr/ootb/xlmr_data.py
+index 8829f9e..7318f57 100644
+--- a/benchmarks/xlmr/ootb/xlmr_data.py
++++ b/benchmarks/xlmr/ootb/xlmr_data.py
+@@ -45,7 +45,7 @@ def sample_sequence_length(query_percentile = None, seq_len_dist=None, seq_len_m
+ def generate_inputs(batchsize, seq_length, vocab_size, is_half=False):
+     shape = (batchsize, seq_length)
+     x = torch.rand(shape) * vocab_size
+-    x = x.int()
++    x = x.long()
+     if is_half:
+         x = x.half()
+     return x
