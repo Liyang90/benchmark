@@ -59,7 +59,7 @@ class Model(BenchmarkModel):
                                    requires_grad=True,
                                    include_cls_sep=False, auto_truncate=True,
                                    dropout=0.5, word_dropout=0.01)
-        self.model = self._move_model_to_device(BertForQuestionAnswering(self.embed), device=device)
+        self.model = self._move_model_to_device(BertForQuestionAnswering(self.embed), device=self.device_obj)
 
         if self._model_contains_inner_module(self.model):
             self._forward_func = self.model.module.forward
@@ -131,7 +131,7 @@ class Model(BenchmarkModel):
     def _prefetch(self, example_inputs):
         prefetched_data = []
         for batch_x, batch_y in example_inputs:
-            self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
+            self._move_dict_value_to_device(batch_x, batch_y, device=self.device_obj)
             prefetched_data.append((batch_x, batch_y))
         return prefetched_data
 
