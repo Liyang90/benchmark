@@ -56,13 +56,13 @@ class Model(BenchmarkModel):
             # https://github.com/pytorch/opacus/blob/6a3e9bd99dca314596bc0313bb4241eac7c9a5d0/opacus/validators/batch_norm.py#L84-L86
             pretrained=False, norm_layer=(lambda c: nn.GroupNorm(min(c, 32), c))
         )
-        self.model = self.model.to(device)
+        self.model = self.model.to(self.device_obj)
 
         # Cifar10 images are 32x32 and have 10 classes
         self.example_inputs = (
-            torch.randn((self.batch_size, 3, 32, 32), device=self.device),
+            torch.randn((self.batch_size, 3, 32, 32), device=self.device_obj),
         )
-        self.example_target = torch.randint(0, 10, (self.batch_size,), device=self.device)
+        self.example_target = torch.randint(0, 10, (self.batch_size,), device=self.device_obj)
         self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
         self.criterion = nn.CrossEntropyLoss()
 
