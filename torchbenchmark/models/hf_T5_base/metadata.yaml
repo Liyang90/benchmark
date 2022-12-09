@@ -8,3 +8,6 @@ not_implemented:
   - jit: true
   # disable train test because of CI infra capacity issue
   - test: train
+    device: cpu
+  - test: train
+    device: cuda
