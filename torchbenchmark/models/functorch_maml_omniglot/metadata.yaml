@@ -5,3 +5,9 @@ train_benchmark: false
 train_deterministic: false
 not_implemented:
   - jit: true
+  # Doesn't support train on xla device, as the tensors given to the `torch.max_pool2d`
+  # function would be a `GradTrackingTensor` and `BatchedTensor` wrapped xla tensor.
+  # RuntimeError: torch_xla/csrc/aten_xla_bridge.cpp:73 : Check failed: xtensor
+  # Input tensor is not an XLA tensor: XLAFloatType
+  - device: xla
+    test: train

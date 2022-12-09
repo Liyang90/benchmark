@@ -6,5 +6,7 @@ eval_deterministic: false
 eval_nograd: true
 not_implemented:
 - jit: true
+# The usage of `as_strided` in this model is not supported by PyTorch/XLA
+- device: xla
 train_benchmark: false
 train_deterministic: false
