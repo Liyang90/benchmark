@@ -67,12 +67,12 @@ class Model(BenchmarkModel):
             nn.ReLU(inplace=True),
             nn.MaxPool2d(2, 2),
             nn.Flatten(),
-            nn.Linear(64, n_way)).to(device)
+            nn.Linear(64, n_way)).to(self.device_obj)
         self.model = net
 
         root = str(Path(__file__).parent)
         self.meta_inputs = torch.load(f'{root}/batch.pt')
-        self.meta_inputs = tuple([torch.from_numpy(i).to(self.device) for i in self.meta_inputs])
+        self.meta_inputs = tuple([torch.from_numpy(i).to(self.device_obj) for i in self.meta_inputs])
 
         self.example_inputs = (self.meta_inputs[0][0],)
 

@@ -58,18 +58,18 @@ class Model(BenchmarkModel):
             ('linear', [args.n_way, 64])
         ]
 
-        self.module = Meta(args, config).to(device)
+        self.module = Meta(args, config).to(self.device_obj)
 
         if use_data_file:
             self.example_inputs = torch.load(f'{root}/batch.pt')
-            self.example_inputs = tuple([torch.from_numpy(i).to(self.device) for i in self.example_inputs])
+            self.example_inputs = tuple([torch.from_numpy(i).to(self.device_obj) for i in self.example_inputs])
         else:
             # synthesize data parameterized by arg values
             self.example_inputs = (
-                torch.randn(args.task_num, args.n_way, args.imgc, args.imgsz, args.imgsz).to(device),
-                torch.randint(0, args.n_way, [args.task_num, args.n_way], dtype=torch.long).to(device),
-                torch.randn(args.task_num, args.n_way * args.k_qry, args.imgc, args.imgsz, args.imgsz).to(device),
-                torch.randint(0, args.n_way, [args.task_num, args.n_way * args.k_qry], dtype=torch.long).to(device))
+                torch.randn(args.task_num, args.n_way, args.imgc, args.imgsz, args.imgsz).to(self.device_obj),
+                torch.randint(0, args.n_way, [args.task_num, args.n_way], dtype=torch.long).to(self.device_obj),
+                torch.randn(args.task_num, args.n_way * args.k_qry, args.imgc, args.imgsz, args.imgsz).to(self.device_obj),
+                torch.randint(0, args.n_way, [args.task_num, args.n_way * args.k_qry], dtype=torch.long).to(self.device_obj))
 
         # print input shapes
         if debug_print:
