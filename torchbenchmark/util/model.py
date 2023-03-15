@@ -207,6 +207,8 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                     current_device_name = "cpu"
                 elif self.device == "mps":
                     current_device_name = "mps"
+                else:
+                    current_device_name = self.device
 
                 if self.metadata and "devices" in self.metadata and current_device_name in self.metadata["devices"]:
                     self.batch_size = self.metadata["devices"][current_device_name]["eval_batch_size"]
