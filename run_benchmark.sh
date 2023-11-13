@@ -47,16 +47,14 @@ function benchmarking_in_container {
   sudo docker exec -it $(sudo docker ps | awk 'NR==2 { print $1 }') /bin/bash
   # install torchbench
   cd ~
-  git clone https://github.com/Liyang90/benchmark.git
+  git clone -b xla_benchmark https://github.com/pytorch/benchmark.git
   cd benchmark
-  git checkout xla_benchmark
   # install deps
   pip install --pre torchvision torchaudio -i https://download.pytorch.org/whl/nightly/cu118
   # git clone xla
   cd ~
-  git clone https://github.com/zpcore/xla.git xla
-  cd ~/xla && git checkout benchmark
-  cd benchmarks
+  git clone -b benchmark https://github.com/pytorch/xla.git xla
+  cd ~/xla/benchmarks
   # dry run
   python3 experiment_runner.py --suite-name=torchbench --accelerator=gpu --progress-bar --dry-run
   # run bechmark
