@@ -54,9 +54,8 @@ function benchmarking_in_container {
   pip install --pre torchvision torchaudio -i https://download.pytorch.org/whl/nightly/cu118
   # git clone xla
   cd ~
-  git clone https://github.com/Liyang90/xla.git
-  cd xla
-  git checkout benchmark
+  git clone https://github.com/zpcore/xla.git xla
+  cd ~/xla && git checkout benchmark
   cd benchmarks
   # dry run
   python3 experiment_runner.py --suite-name=torchbench --accelerator=gpu --progress-bar --dry-run
