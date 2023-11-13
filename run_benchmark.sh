@@ -67,15 +67,15 @@ function benchmarking_in_container {
 
 
 
-if TESTGPUVM='1-A100':
+if TESTGPUVM='1A100':
   # ssh to 1-A100 GPUVM and test in container
   gcloud compute ssh a100-manfei-1 --zone us-central1-c --project tpu-prod-env-one-vm -- -o ProxyCommand='corp-ssh-helper %h %p' --command=benchmarking_in_container
-elif TESTGPUVM='8-A100':
+elif TESTGPUVM='8A100':
   # SSH TO 8-A100 GPUVM and test in container
   gcloud compute ssh manfei-a100-8-new --zone us-central1-c --project tpu-prod-env-one-vm -- -o ProxyCommand='corp-ssh-helper %h %p' --command=benchmarking_in_container
-elif TESTGPUVM='4-H100':
+elif TESTGPUVM='4H100':
   # ssh to 4-H100 GPUVM and test in container
-elif TESTTPUVM='v5e-8':
+elif TESTTPUVM='v5e8':
   # ssh to v5e-8 TPUVM and test in container
-elif TESTTPUVM='v5p':
+elif TESTTPUVM='v5p8':
   # ssh to v5p-8 TPUVM and test in container
